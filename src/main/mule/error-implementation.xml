@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:request-config name="HTTP_Lib_ActiveMQ_Request_Config" doc:name="HTTP Request configuration" doc:id="bd32a5b3-2b1a-4484-a650-b462b98406fe" basePath="/api/core/error/v1.0">
+		<http:request-connection host="${amq.http.host}" port="${amq.http.port}">
+		</http:request-connection>
+	</http:request-config>
+	<http:request-config name="HTTP_Error_Request_config" doc:name="HTTP Request configuration" doc:id="3b3d4744-c6ca-4742-82e2-faa8e49e629e" basePath="/api/core/error/v1.0">
+		<http:request-connection protocol="HTTPS" host="${api.hostname}" port="${api.port}" >
+			<tls:context >
+				<tls:trust-store path="${mule.security.path}/AW_truststore.ts" password="${mule.key}" type="jks" />
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+	<sub-flow name="unhandled-exception-subFlow" doc:id="a4e53a1d-4b74-47c6-9ce9-5d71501781d8" >
+		<logger level="INFO" doc:name="Unhandled Exception" doc:id="0a1c6e1d-3dcb-4fef-bac9-e1d6848f4aed" message="#['Unhandled Exception:' ++  error.description ++ '\nError Type: ' ++ error.errorType.identifier ++ '\n']"/>
+		<set-variable value="#[error.description ++ '\nError Type: ' ++ error.errorType.identifier]" doc:name="Variable: exception" doc:id="8509161d-3fa5-4a02-86a1-d381f412a8cd" variableName="exception" />
+		<flow-ref doc:name="send-to-core-errorhandling-api" doc:id="9a173f84-6ecb-4c90-9b21-95e5d0d619c3" name="send-to-core-errorhandling-api"/>
+		<set-variable value="#[519]" doc:name="statusCode" doc:id="42bb667d-b4df-4f16-9780-70b7dc7cde16" variableName="statusCode"/>
+		<logger level="INFO" doc:name="Unhandled Exception Handled" doc:id="c16cd472-5fdb-4199-a539-fbb9129fea6a" message="Unhandled Exception is handled."/>
+	</sub-flow>
+	<flow name="send-to-core-errorhandling-api" doc:id="46e33127-cbe8-4928-825c-1ab72a01507f" >
+		<logger level="INFO" doc:name="Start" doc:id="751d8248-153e-4123-98d0-8ff1d0a99e00" message="Sending Request to Error Handler API"/>
+		<ee:transform doc:name="Transform to Error API" doc:id="a2c8cf31-219e-44d8-a1e4-4b7d5f1d74b2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	(appErrCode: vars.Error.appErrCode) if vars.Error.appErrCode != null,
+	processName: vars.Error.processName default null,
+	intErrCode: vars.Error.intErrCode default null,
+	exceptionType: vars.Error.exceptionType default null,
+	sourceSystem: vars.Error.sourceSystem default null,
+	targetSystem: vars.Error.targetSystem default null,
+	instanceName: p('node.name') default null,
+	(defaultFail: vars.Error.defaultFail) if vars.Error.defaultFail != null,
+	(defaultEmailCc: vars.Error.defaultEmailCc) if vars.Error.defaultEmailCc != null,
+	(defaultEmailTo: vars.Error.defaultEmailTo) if vars.Error.defaultEmailTo != null,
+	(defaultResolverGroup: vars.Error.defaultResolverGroup) if vars.Error.defaultResolverGroup != null,
+	defaultSeverity: (vars.Error.defaultSeverity default 0) as Number,
+	emailSubject: vars.Error.emailSubject default null,
+	errorMessage: vars.exception default null,
+	(originalInput: vars.Error.originalReq) if vars.Error.originalReq != null,
+	(processQName: vars.Error.processQ) if vars.Error.processQ != null,
+	(additionalInfo: vars.Error.additionalInfo) if vars.Error.additionalInfo != null,
+	(faultDetails: vars.Error.faultDetails) if vars.Error.faultDetails != null,
+	(attachBOs: vars.Error.attachBOs) if vars.Error.attachBOs != null
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Before API" doc:id="7782d549-974a-4880-bbb6-360108453337" message="#['Before calling Logging-' ++ payload.^raw]"/>
+		<set-variable value="${munit.sendemail}" doc:name="Set Variable" doc:id="42349af5-1cf8-406f-82ac-0f2370200327" variableName="sendEmail"/>
+		<logger level="INFO" doc:name="sendEmail" doc:id="1898dc5e-046d-46b8-b38e-8671383734a8" message="#['sendEmail' ++ vars.sendEmail]"/>
+		<choice doc:name="Choice" doc:id="e5978fda-aa71-4f4d-b927-1e9d78c8c9f8" >
+			<when expression="#[vars.sendEmail != null and vars.sendEmail =='no']">
+				<logger level="INFO" doc:name="skipMunitEmail" doc:id="248596f2-e05c-4fe3-b8a7-b9fe4fcf5f71" message="Skipping Munit emails...."/>
+			</when>
+			<otherwise >
+				<http:request method="POST" doc:name="HTTP Error Request" doc:id="613cd01a-17c1-4bc8-99b6-9acac0f2b970" config-ref="HTTP_Error_Request_config" path="/events">
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_id" : vars.Error.clientId,
+	"client_secret" : vars.Error.clientSecret
+}]]]></http:headers>
+				</http:request>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="handle-exceptionsFlow" doc:id="30a7e5c8-d145-4301-a5bd-2ebe0315b4e1" >
+		<logger level="INFO" doc:name="HandledException" doc:id="a30657e1-74b2-4383-93c9-5882da59981e" message="#['Handled Exception:  Error description: ' ++  error.description ++ '\nError Type: ' ++ error.errorType.identifier ++ '\n']"/>
+		<set-variable value="#[error.muleMessage.attributes.StatusCode]" doc:name="Set Variable" doc:id="9a7c2de4-2c34-4ee6-8d3b-47138ef4e4cc" variableName="httpStatus"/>
+		<logger level="INFO" doc:name="Http Status" doc:id="206e80fc-90bc-48a0-b294-1c50eeb92b0c" message="#['HTTP Status is-' ++ (vars.httpStatus default &quot;null&quot;)]"/>
+		<choice doc:name="Choice" doc:id="9a987113-1c3f-4fa5-a962-e34f3fdbcc00" >
+			<when expression="#[vars.httpStatus !=null and vars.httpStatus !=0 and vars.httpStatus &gt; 399 and error.errorMessage.payload !=null]">
+				<logger level="INFO" doc:name="Exception from SystemAPI" doc:id="94b31588-2783-409b-adb3-928196429876" message="#['getting exception from paload set by external api call failure and exception message' ++ error.errorMessage.payload.^raw]"/>
+				<set-variable value="#[error.errorMessage.payload.^raw ++ '\nApp Exception: ' ++ error.description ++ '\nError Type: ' ++ error.errorType.identifier ++ '\n']" doc:name="From SystemAPI" doc:id="6054cc0b-c214-43c3-afa8-615aa1a76697" variableName="exception" />
+				<logger level="INFO" doc:name="Logger" doc:id="66d5c37b-d44d-44d9-9359-9123142cadc4" message="from System API"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Exception from Error" doc:id="386bff18-ab2e-4b91-a660-eb73e95aa14e" message="#['getting exception message from exception only']"/>
+				<set-variable value="#[error.description ++ '\nError Type: ' ++ error.errorType.identifier]" doc:name="from Error" doc:id="c7e0d7b0-1c51-4f03-800a-1d4265ae7281" variableName="exception"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Final Exception Msg" doc:id="b1cfc4ad-c5cd-4a3a-99ff-742bb0e10c40" message="#['Final Exception Msg:' ++ vars.exception]"/>
+		<flow-ref doc:name="send-to-core-errorhandling-api" doc:id="1f889a22-7443-481f-90dc-40a59ecb5859" name="send-to-core-errorhandling-api"/>
+		<set-variable value="#[500]" doc:name="Copy_of_Set Variable" doc:id="205995d3-0342-4958-9796-ddd0419ac7a0" variableName="statusCode" />
+		<logger level="INFO" doc:name="Exception Handled" doc:id="7ef75c0a-44ba-42b7-8583-6d910a4d5c27" message="Exception is handled."/>
+	</flow>
+</mule>

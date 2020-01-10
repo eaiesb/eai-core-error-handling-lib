@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="error-implementation-test-suite.xml" />
+	<munit:test name="error-implementation-test-suite-handle-exceptionsFlowTest" description="Test" doc:id="1c6ca31b-c64f-471b-a46c-2fc516ed23b0">
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock when" doc:id="f6a13fa7-6fc8-433c-a1b6-6751b4ee6380" processor="http:request">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute attributeName="#['doc:name']" whereValue="#['HTTP Error Request']" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[{"failFlag": "YES"}]' mediaType="application/json"/>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<try doc:name="Try" doc:id="35aa98af-045e-46e0-bfb8-d44597debe71" >
+				<flow-ref doc:name="test-this-libFlow" doc:id="839a93b8-b561-402d-b774-ed4d9a81eecf" name="test-this-libFlow" />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1680c9ff-ffce-4976-b340-e24259bfeb21" />
+				</error-handler>
+			</try>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="9659d49f-3681-40ea-880b-3d3b65dc03a8" processor="set-variable">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute attributeName="#['doc:name']" whereValue="#['from Error']" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="error-implementation-test-suiteTest" description="MUnit Test" doc:id="06d1c70a-7195-4179-80fe-7e9a8983339e" >
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="HTTP Error Request" doc:id="2c499dae-049f-4b92-bd24-d75311d68266" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute attributeName="#['doc:name']" whereValue="#['HTTP Error Request']" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[{"failFlag": "YES"}]' mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<try doc:name="Try" doc:id="e1218b8f-032f-46de-a9c7-edd5d6ad6f61" >
+				<flow-ref doc:name="test-SystemAPIException-libFlow" doc:id="bbc6815b-3e3f-4870-a5a4-8c61c86a78b7" name="test-SystemAPIException-libFlow" />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="0b7805d4-348a-418b-bb48-edeeae4615c7" />
+				</error-handler>
+			</try>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="0d1bdcfb-e1f9-46c8-b0dc-31ddd0ecd483" processor="set-variable" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute attributeName="#['doc:name']" whereValue="#['From SystemAPI']" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

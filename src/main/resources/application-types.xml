@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="requestObject" format="java">
+      <types:shape format="java" element="java.lang.Object"/>
+    </types:type>
+    <types:type name="errorResponse" format="java">
+      <types:shape format="java" element="java.lang.Object"/>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#179cfed7-afc0-4baf-9217-c5b013f54f0f">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:variables>
+          <types:variable name="requestObject" type="requestObject"/>
+          <types:variable name="errorResponse" type="errorResponse"/>
+        </types:variables>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

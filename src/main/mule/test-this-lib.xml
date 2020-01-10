@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:request-config name="HTTP_Test_Request_config" doc:name="HTTP Request configuration" doc:id="08c732c1-a182-43ec-b7f2-42a5604364f3" >
+		<http:request-connection host="cgmndlmul01" port="9081" />
+	</http:request-config>
+	<flow name="test-this-libFlow" doc:id="83405406-dc28-4eca-95f0-7aed2e988f30" >
+		<logger level="INFO" doc:name="In place of Exception" doc:id="b12b9395-6090-4bca-8470-3bab3e5eeb17" message="#['This is in place for raise exception']"/>
+		<raise-error doc:name="Raise error" doc:id="a84e7630-d2e5-4730-9585-68d93a948155" type="EAI:ERRORHANDLING"/>
+		<error-handler ref="Global_Choice_Exception_Strategy"/>
+	</flow>
+	<flow name="test-SystemAPIException-libFlow" doc:id="d950cf7b-97ba-44f2-be94-818ebbaa7143" >
+		<http:request method="GET" doc:name="Request" doc:id="ed9b05d4-66c5-4134-9c29-4d9453d0aeac" config-ref="HTTP_Test_Request_config" path="/testSystemAPIException"/>
+		<logger level="INFO" doc:name="TestLogger" doc:id="5288b272-fca4-424a-aa42-f0d77554b56d" />
+		<error-handler ref="Global_Choice_Exception_Strategy"/>
+	</flow>
+</mule>

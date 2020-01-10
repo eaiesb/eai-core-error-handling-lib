@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<error-handler name="apiKitGlobalErrorHandler" doc:id="70600cb2-63c1-4e30-a410-06326477017e" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="979454c3-d8c2-457c-a9ae-92e64e2c7b94" type="ANY">
+			<ee:transform doc:name="apiKitErrorTransform" doc:id="de939b24-98a3-41c1-adc6-47f341a17a3b" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	(Error:{
+		message: 'errorType: ' ++ error.errorType.identifier ++ 'errorDescription: ' ++ error.description		
+	}) if vars.awSystemException == null,
+	(Error:{
+		message: vars.awSystemException
+	}) if vars.awSystemException != null
+}
+]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+	<error-handler name="apiKitGlobalXMLErrorHandler" doc:id="094d9733-7bf3-43df-8148-17bc677f2ef7" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5eb39eaf-f7a3-4790-a1cd-6b8109ad280e" type="ANY">
+			<ee:transform doc:name="apiKitErrorTransform" doc:id="bd34eae4-d2fe-42de-b7bf-137bdae8ecaf" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	(Error:{
+		message: 'errorType: ' ++ error.errorType.identifier ++ 'errorDescription: ' ++ error.description		
+	}) if vars.awSystemException == null,
+	(Error:{
+		message: vars.awSystemException
+	}) if vars.awSystemException != null
+}
+]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+	<error-handler name="Global_Choice_Exception_Strategy" doc:id="93f227fc-6f11-4201-94a4-3553eea07e8b" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="e38f18fa-316b-4669-9026-025386ecb249" type="ANY">
+			<logger level="INFO" doc:name="Logger ANY" doc:id="b059943e-2697-4381-8a2d-2a40b3e19f14" message="#['----------ANYException']"/>
+			<logger level="INFO" doc:name="Logger" doc:id="347e5e2b-559d-4a92-b4e3-b540928da286" message="#[error.cause]" />
+			<flow-ref doc:name="handle-exceptionsFlow" doc:id="63900a1b-bd60-46e0-a9b3-8ef206a24c7d" name="handle-exceptionsFlow"/>
+		
+</on-error-continue>
+</error-handler>
+</mule>

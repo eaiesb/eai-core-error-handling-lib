@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="request-response-loggingSub_Flow" doc:id="6da55b18-30de-4b6d-a390-dfc590441c2c" >
+		<ee:transform doc:name="Build Log Data" doc:id="179cfed7-afc0-4baf-9217-c5b013f54f0f" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="logData" ><![CDATA[%dw 2.0
+output application/java
+var startTime = vars.requestObject.startTimeInMillis
+var endTime = if(vars.errorResponse != null) vars.errorResponse.endTimeInMillis else vars.responseObject.endTimeInMillis
+---
+{
+	("processName": vars.requestObject.parentProcessName) if (vars.requestObject.parentProcessName != null),
+	"Transaction": vars.requestObject.transactionName,
+	"StartTime": vars.requestObject.startTime,
+	"Request": (vars.requestObject.requestPayload replace  /[\r|\n|\t]/ with ""),
+	"EndTime": if (vars.errorResponse != null) vars.errorResponse.endTime else vars.responseObject.endTime,
+	"Response": if (vars.errorResponse != null) (vars.errorResponse.errorPayload) else (vars.responseObject.responsePayload replace  /[\r|\n|\t]/ with ""),
+	"TotalTime": endTime - startTime ++ "ms"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="TRACE" doc:name="Log - Log Data" doc:id="8d8fa81b-4df8-4df5-ae1c-72a89d44ff4c" message="#[vars.logData]" category="reqrespLogger" />
+	</sub-flow>
+</mule>
